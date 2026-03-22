@@ -1,6 +1,3 @@
-
-
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -42,7 +39,6 @@ def select_mutual_info(X, y, quantile=0.5):
     return X[:, idx], idx
 
 
-# -- Comparison table ---------------------------------------------------------
 
 def compare_methods(X, y):
     n = X.shape[1]
