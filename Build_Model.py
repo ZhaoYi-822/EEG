@@ -1,104 +1,104 @@
 
-from xgboost import XGBClassifier
-from sklearn.svm import SVC
-from xgboost import XGBClassifier
-from sklearn.svm import SVC
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from xgboost import XGBClassifier
+from sklearn.svm import SVC
 
 
 
-def xgboost_model(num_classes):
-    model = XGBClassifier(
-        n_estimators=300,
-        learning_rate=0.05,
-        max_depth=6,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        objective='multi:softmax',
-        num_class=num_classes,
-        eval_metric='mlogloss',
+def build_xgboost(n_classes):
+    xg_model = XGBClassifier(
+        booster='gbtree',
+        n_estimators=230,
+        max_depth=15,
         random_state=42,
-        use_label_encoder=False
+        num_class=n_classes,
+        use_label_encoder=False,
+        eval_metric='mlogloss',
+        verbosity=0,
     )
-    return model
+    return xg_model
 
 
-def svm_model():
-    model = SVC(
+
+def build_svm():
+
+    svm_model=SVC(
+        C=10,
         kernel='rbf',
-        C=1.0,
-        gamma='scale',
         probability=True,
-        random_state=42
+        decision_function_shape='ovo',
+        random_state=42,
     )
-    return model
+    return svm_model
 
 
-class CNN(nn.Module):
-    def __init__(self, num_classes):
-        super(CNN, self).__init__()
-
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=64, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm1d(64)
-
-        self.conv2 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm1d(128)
-
-        self.global_pool = nn.AdaptiveAvgPool1d(1)
-        self.fc1 = nn.Linear(128, 128)
-        self.dropout = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(128, num_classes)
-
-    def forward(self, x):
-        x = x.permute(0, 2, 1)
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = self.global_pool(x).squeeze(-1)
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
-        return x
 
 
-def cnn_model(num_classes):
-    return CNN(num_classes=num_classes)
+class LSTMModel(nn.Module):
 
-
-class LSTM(nn.Module):
-    def __init__(self, num_classes):
-        super(LSTM, self).__init__()
-
+    def __init__(self, input_size: int, hidden_size: int = 128,
+                 num_layers: int = 2, n_classes: int = 25,
+                 dropout: float = 0.3):
+        super().__init__()
         self.lstm = nn.LSTM(
-            input_size=1,
-            hidden_size=128,
-            num_layers=1,
-            batch_first=True
+            input_size, hidden_size, num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0.0,
         )
-        self.fc1 = nn.Linear(128, 128)
-        self.dropout = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(128, num_classes)
+        self.dropout = nn.Dropout(dropout)
+        self.fc      = nn.Linear(hidden_size, n_classes)
 
-    def forward(self, x):
-        _, (h_n, _) = self.lstm(x)
-        x = h_n[-1]
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
-        return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out, _ = self.lstm(x)
+        out    = self.dropout(out[:, -1, :])
+        return self.fc(out)
 
-def lstm_model(num_classes):
-    return LSTM(num_classes=num_classes)
+
+
+
+class CNNModel(nn.Module):
+    def __init__(self, input_size: int, n_classes: int = 25,
+                 dropout: float = 0.5):
+        super().__init__()
+
+        self.conv_block = nn.Sequential(
+
+            nn.Conv1d(1, 64, kernel_size=3, padding=1),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Conv1d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+        )
+
+        conv_out_len = input_size // 4
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(128 * conv_out_len, 256),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(256, n_classes),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.classifier(self.conv_block(x))
+
 
 
 if __name__ == "__main__":
-    num_classes = 26
-    input_shape = (55, 14)
+    lstm = LSTMModel(input_size, n_classes=n_classes)
+    x    = torch.randn(batch, 1, input_size)
+    print(f"LSTM   {lstm(x).shape}")
 
-    xgb = xgboost_model(num_classes=num_classes)
-    svm = svm_model()
-    cnn = cnn_model(num_classes=num_classes)
-    lstm = lstm_model( num_classes=num_classes)
+    cnn = CNNModel(input_size, n_classes=n_classes)
+    print(f"CNN    {cnn(x).shape}")
 
 
+    xgboost = build_xgboost(n_classes=n_classes)
+    print(f"XGBoost: {build_xgboost()}")
+    
+    svm=build_svm(n_classes=n_classes)
+    print(f"SVM    : {build_svm()}")
