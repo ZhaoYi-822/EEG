@@ -15,7 +15,7 @@ EPOCHS = 30
 LR = 1e-3
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda")
 
 train_data=pd.read_csv('EEG_dataset/cdl_eeg_dataset.csv')
 test_data=pd.read_csv('EEG_dataset/cdl_eeg_dataset.csv')
