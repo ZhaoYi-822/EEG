@@ -37,9 +37,9 @@ def build_svm():
 
 class LSTMModel(nn.Module):
 
-    def __init__(self, input_size: int, hidden_size: int = 128,
-                 num_layers: int = 2, n_classes: int = 25,
-                 dropout: float = 0.3):
+    def __init__(self, input_size, hidden_size,
+                 num_layers, n_classes,
+                 dropout):
         super().__init__()
         self.lstm = nn.LSTM(
             input_size, hidden_size, num_layers,
@@ -58,8 +58,8 @@ class LSTMModel(nn.Module):
 
 
 class CNNModel(nn.Module):
-    def __init__(self, input_size: int, n_classes: int = 25,
-                 dropout: float = 0.5):
+    def __init__(self, input_size, n_classes,
+                 dropout):
         super().__init__()
 
         self.conv_block = nn.Sequential(
@@ -83,6 +83,6 @@ class CNNModel(nn.Module):
             nn.Linear(256, n_classes),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor):
         return self.classifier(self.conv_block(x))
 
