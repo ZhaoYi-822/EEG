@@ -1,9 +1,3 @@
-"""
-train_eeg_torch.py
-
-Train and evaluate XGBoost, SVM, CNN and LSTM for EEG identity recognition.
-"""
-
 import pandas as pd
 import joblib
 import torch
@@ -85,34 +79,5 @@ def train_torch_model(model, x_train, y_train, x_test, y_test, epochs, name):
     return acc
 
 
-# ---------------------------
-# Main
-# ---------------------------
-if __name__ == "__main__":
-
-    X_train, X_test, y_train, y_test, X_train_seq, X_test_seq, n_classes = prepare_data(X, y)
-
-
-    xgb = Build_Model.xgboost_model()
-    xgb.fit(X_train, y_train)
-    y_pred = xgb.predict(X_test)
-    print("XGBoost accuracy:", accuracy_score(y_test, y_pred))
-    joblib.dump(xgb,  "models/xgboost.pkl")
-
-
-
-    svm = Build_Model.svm_model()
-    svm.fit(X_train, y_train)
-    y_pred = svm.predict(X_test)
-    print("SVM accuracy:", accuracy_score(y_test, y_pred))
-    joblib.dump(svm, "models/svm.pkl")
-
-
-
-    cnn = Build_Model.cnn_model(num_classes=21)
-    train_torch_model(cnn, X_train_seq, y_train, x_test, y_test, EPOCHS, "cnn")
-
-    lstm = Build_Model.lstm_model(num_classes=21)
-    train_torch_model(lstm, X_train_seq, y_train, x_test, y_test, EPOCHS, "lstm")
 
 
